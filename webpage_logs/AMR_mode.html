@@ -1,0 +1,1332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AMR Configuracion</title>
+    
+    <!-- Load Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #f8fafc;
+            color: #334155;
+            line-height: 1.6;
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-gap: 30px;
+            margin-top: 20px;
+        }
+        
+        @media (max-width: 900px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        
+        h1 {
+            color: #1e40af;
+            font-weight: 600;
+            font-size: 2.2rem;
+            margin-bottom: 10px;
+        }
+        
+        h2, h3 {
+            color: #1e3a8a;
+            font-weight: 500;
+            margin-bottom: 15px;
+        }
+        
+        h2 {
+            font-size: 1.5rem;
+            margin-top: 25px;
+        }
+        
+        h3 {
+            font-size: 1.2rem;
+            margin-top: 20px;
+        }
+        
+        .card {
+            background-color: white;
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 4px 12px rgba(30, 64, 175, 0.08);
+            border: 1px solid #e0f2fe;
+            margin-bottom: 25px;
+        }
+        
+        .control-section {
+            grid-column: 1;
+        }
+        
+        .visualization-section {
+            grid-column: 2;
+        }
+        
+        @media (max-width: 900px) {
+            .control-section,
+            .visualization-section {
+                grid-column: 1;
+            }
+        }
+        
+        .input-group {
+            margin-bottom: 20px;
+        }
+        
+        .input-row {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+        
+        label {
+            font-weight: 500;
+            color: #475569;
+            min-width: 60px;
+        }
+        
+        input, select {
+            padding: 10px 14px;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            font-family: 'Roboto Mono', monospace;
+            font-size: 14px;
+            background-color: #f8fafc;
+            transition: all 0.2s;
+        }
+        
+        input:focus, select:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+            background-color: white;
+        }
+        
+        button {
+            background-color: #3b82f6;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 12px 20px;
+            font-family: 'Poppins', sans-serif;
+            font-weight: 500;
+            font-size: 15px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        button:hover {
+            background-color: #2563eb;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(37, 99, 235, 0.2);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        .danger-btn {
+            background-color: #ef4444;
+        }
+        
+        .danger-btn:hover {
+            background-color: #dc2626;
+        }
+        
+        .success-btn {
+            background-color: #10b981;
+        }
+        
+        .success-btn:hover {
+            background-color: #059669;
+        }
+        
+        .button-row {
+            display: flex;
+            gap: 15px;
+            margin-top: 25px;
+            flex-wrap: wrap;
+        }
+        
+        .status-info {
+            margin-top: 25px;
+            padding: 18px;
+            border-radius: 10px;
+            background-color: #f0f9ff;
+            border-left: 4px solid #3b82f6;
+        }
+        
+        .status-line {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+        
+        .status-label {
+            font-weight: 500;
+            color: #475569;
+        }
+        
+        .status-value {
+            font-family: 'Roboto Mono', monospace;
+            font-weight: 500;
+        }
+        
+        .connected {
+            color: #10b981;
+        }
+        
+        .disconnected {
+            color: #ef4444;
+        }
+        
+        .charts-container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .chart-box {
+            background-color: white;
+            border-radius: 10px;
+            padding: 15px;
+            box-shadow: 0 4px 8px rgba(30, 64, 175, 0.08);
+            border: 1px solid #e0f2fe;
+        }
+
+        /* First chart (X vs Y) - make it much taller */
+        .chart-box:first-child {
+            height: 450px; /* Increased from 300px */
+        }
+
+        .chart-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            height: 250px; /* Added fixed height for bottom row */
+        }
+
+        .chart-row .chart-box {
+            height: 100%; /* Take full height of parent */
+        }
+        
+        .chart-title {
+            text-align: center;
+            font-size: 14px;
+            font-weight: 500;
+            color: #475569;
+            margin-bottom: 10px;
+        }
+        
+        canvas {
+            width: 100% !important;
+            height: 200px !important;
+        }
+        
+        .function-formula {
+            background-color: #f8fafc;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+            font-family: 'Roboto Mono', monospace;
+            font-size: 14px;
+            color: #1e40af;
+            text-align: center;
+            border: 1px dashed #cbd5e1;
+        }
+        
+        .divider {
+            height: 1px;
+            background: linear-gradient(to right, transparent, #cbd5e1, transparent);
+            margin: 30px 0;
+        }
+        
+        .section-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .section-icon {
+            background-color: #dbeafe;
+            color: #1e40af;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 12px;
+            font-weight: 600;
+        }
+
+        /* Force specific heights for each canvas */
+        #chartXY {
+            height: 350px !important;
+        }
+
+        #chartX, #chartY {
+            height: 180px !important;
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <h1>Control AMR</h1>
+        <p>Genera puntos y rutas para enviar a través de WiFi
+            <br>
+        </p>
+    </header>
+    
+    <div class="container">
+        <div class="control-section">
+            <!-- Manual Coordinate Entry -->
+            <div class="card">
+                <div class="section-header">
+                    <div class="section-icon">1</div>
+                    <h3>Ingreso Manual de Coordenadas</h3>
+                </div>
+                
+                <div class="input-group">
+                    <div class="input-row">
+                        <label for="x">X (m):</label>
+                        <input id="x" type="number" step="0.001" placeholder="0.000">
+                    </div>
+                    <div class="input-row">
+                        <label for="y">Y (m):</label>
+                        <input id="y" type="number" step="0.001" placeholder="0.000">
+                    </div>
+                </div>
+                
+                <button onclick="addPoint()" class="success-btn">Add Point</button>
+            </div>
+            
+            <!-- Function Mode -->
+            <div class="card">
+                <div class="section-header">
+                    <div class="section-icon">2</div>
+                    <h3>Generador de Funciones</h3>
+                </div>
+                
+                <p>Crea funciones paramétricas para las coordenadas de X y Y, de la forma siguiente (incluye t en tus ecuaciones):</p>
+                
+                <div class="function-formula">
+                    X(t) = A ⋅ sin/cos(B⋅t)<br>
+                    Y(t) = C ⋅ sin/cos(D⋅t)
+                </div>
+                
+                <h4>Parámetros de función de X</h4>
+                <div class="input-group">
+                    <div class="input-row">
+                        <label for="A">A:</label>
+                        <input id="A" type="text" value="1" placeholder="e.g. 1 or 1.2 or 2*pi">
+                    </div>
+                    <div class="input-row">
+                        <label for="funcX">Func:</label>
+                        <select id="funcX">
+                            <option value="sin">sin</option>
+                            <option value="cos">cos</option>
+                        </select>
+                    </div>
+                    <div class="input-row">
+                        <label for="B">B:</label>
+                        <input id="B" type="text" value="4*pi*t/100" placeholder="e.g. 4*pi*t/100">
+                    </div>
+                </div>
+                
+                <h4>Parámetros de función de X</h4>
+                <div class="input-group">
+                    <div class="input-row">
+                        <label for="C">C:</label>
+                        <input id="C" type="text" value="1" placeholder="e.g. 1 or 0.5">
+                    </div>
+                    <div class="input-row">
+                        <label for="funcY">Func:</label>
+                        <select id="funcY">
+                            <option value="sin">sin</option>
+                            <option value="cos">cos</option>
+                        </select>
+                    </div>
+                    <div class="input-row">
+                        <label for="D">D:</label>
+                        <input id="D" type="text" value="2*pi*t/100" placeholder="e.g. 2*pi*t/100">
+                    </div>
+                </div>
+                
+                <button onclick="computeFunction()">Computar y Guardar</button>
+            </div>
+            <!-- Drawing Section -->
+            <div class="card">
+                <div class="section-header">
+                    <div class="section-icon">5</div>
+                    <h3>Dibujo de Ruta</h3>
+                </div>
+                
+                <p>Dibuja una ruta en el canvas y guárdala como coordenadas para enviar al AMR.</p>
+                
+                <div class="controls" style="margin-bottom: 15px; display: flex; gap: 10px; margin-top: 15px;">
+                    <button id="clearCanvasBtn" class="danger-btn">Limpiar Canvas</button>
+                    <button id="saveDrawingBtn" class="success-btn">Guardar Ruta Dibujada</button>
+                </div>
+                
+                <div style="position: relative; margin: 20px 0; display: flex; justify-content: center;">
+                    <div style="position: relative;">
+                        <canvas id="drawingCanvas" width="500" height="500" style="border: 2px solid #cbd5e1; border-radius: 8px; background-color: white; cursor: crosshair;"></canvas>
+                        <div style="text-align: center; margin-top: 10px; font-size: 12px; color: #64748b;">
+                            Canvas: 10x10 metros (5m desde el origen en cada dirección)
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="drawingStatus" class="status-info" style="margin-top: 15px;">
+                    <div class="status-line">
+                        <span class="status-label">Estado del dibujo:</span>
+                        <span id="drawingStatusText" class="status-value">Listo para dibujar</span>
+                    </div>
+                    <div class="status-line">
+                        <span class="status-label">Puntos en dibujo:</span>
+                        <span id="drawingPointsCount" class="status-value">0</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="visualization-section">
+            <!-- Action Buttons -->
+            <div class="card">
+                <div class="section-header">
+                    <div class="section-icon">3</div>
+                    <h3>Comunicación</h3>
+                </div>
+                
+                <div class="button-row">
+                    <button onclick="clearArray()" class="danger-btn">Limpiar Coordenadas</button>
+                    <button onclick="sendArray()" class="success-btn">Mandar Ruta al AMR</button>
+                </div>
+                
+                <div class="status-info">
+                    <div class="status-line">
+                        <span class="status-label">Total de coordenadas:</span>
+                        <span id="labelCount" class="status-value">0</span>
+                    </div>
+                    <div class="status-line">
+                        <span class="status-label">Estado de conexión:</span>
+                        <span id="status" class="status-value disconnected">Desconectado</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="section-header">
+                    <div class="section-icon">4</div>
+                    <h3>Visualización de Ruta</h3>
+                </div>
+                
+                <p>Representación visual de las coordenadas de ruta:</p>
+                
+                <div class="charts-container">
+                    <!-- X vs Y chart - full width on first line -->
+                    <div class="chart-box">
+                        <div class="chart-title">Desplazamiento en el plano</div>
+                        <canvas id="chartXY"></canvas>
+                    </div>
+                    
+                    <!-- Second line with two smaller charts -->
+                    <div class="chart-row">
+                        <div class="chart-box">
+                            <div class="chart-title">X a través del tiempo (mm)</div>
+                            <canvas id="chartX"></canvas>
+                        </div>
+                        <div class="chart-box">
+                            <div class="chart-title">Y a través del tiempo (mm)</div>
+                            <canvas id="chartY"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ============================================
+        // WEBSOCKET SETUP
+        // ============================================
+        let ws = new WebSocket("ws://192.168.137.160:81"); // change IP if needed
+        let points = [];
+
+        ws.onopen = () => {
+            document.getElementById("status").innerText = "Conectado";
+            document.getElementById("status").className = "status-value connected";
+        };
+
+        ws.onclose = () => {
+            document.getElementById("status").innerText = "Desconectado";
+            document.getElementById("status").className = "status-value disconnected";
+        };
+
+
+        // ============================================
+        // COUNTER UPDATE
+        // ============================================
+        function updateCount() {
+            document.getElementById("labelCount").innerText = points.length;
+        }
+
+
+        // ============================================
+        // MANUAL POINT ADD
+        // ============================================
+        function addPoint() {
+            let xVal = parseFloat(document.getElementById("x").value);
+            let yVal = parseFloat(document.getElementById("y").value);
+
+            if (isNaN(xVal) || isNaN(yVal)) {
+                alert("Both X and Y must be valid numbers");
+                return;
+            }
+
+            // Convert meters → mm
+            let xMM = Math.round(xVal * 1000);
+            let yMM = Math.round(yVal * 1000);
+
+            // Clamp to int16
+            xMM = Math.max(-32768, Math.min(32767, xMM));
+            yMM = Math.max(-32768, Math.min(32767, yMM));
+
+            points.push({ x: xMM, y: yMM });
+
+            updateCount();
+            updateCharts();
+        }
+
+
+        // ============================================
+        // Expression -> evaluator builder (safe-ish)
+        // ============================================
+        function makeEvaluator(userExpr) {
+            // Trim
+            let expr = String(userExpr).trim();
+            if (expr.length === 0) {
+                // return constant zero func
+                return function (t) { return 0; };
+            }
+
+            // Replace common tokens with Math equivalents
+            // Note: order matters -> replace 'pi' first
+            expr = expr.replace(/pi/gi, "Math.PI");
+
+            // add Math. before common functions if user typed sin(, cos(, etc.
+            expr = expr.replace(/\bsin\s*\(/gi, "Math.sin(");
+            expr = expr.replace(/\bcos\s*\(/gi, "Math.cos(");
+            expr = expr.replace(/\btan\s*\(/gi, "Math.tan(");
+            expr = expr.replace(/\batan2\s*\(/gi, "Math.atan2(");
+            expr = expr.replace(/\bexp\s*\(/gi, "Math.exp(");
+            expr = expr.replace(/\blog\s*\(/gi, "Math.log(");
+            expr = expr.replace(/\bsqrt\s*\(/gi, "Math.sqrt(");
+            expr = expr.replace(/\babs\s*\(/gi, "Math.abs(");
+            expr = expr.replace(/\bpow\s*\(/gi, "Math.pow(");
+            expr = expr.replace(/\bmin\s*\(/gi, "Math.min(");
+            expr = expr.replace(/\bmax\s*\(/gi, "Math.max(");
+
+            // As a final safety, forbid certain dangerous tokens:
+            if (/[^-+/*%^().0-9MathPItrexysincogabwzldpn ]/i.test(expr)) {
+                // This regex is conservative; it allows: digits, ops, parentheses, Math, PI, letters used by functions.
+                // If you hit false positives, we can loosen it, but keep it conservative.
+                // We'll still attempt to build evaluator but warn.
+                console.warn("Expression contains unusual characters:", expr);
+            }
+
+            // Build a function of t that returns the expression value
+            // The function receives parameter t. We do NOT use "with".
+            let func;
+            try {
+                func = new Function("t", `"use strict"; return (${expr});`);
+                // test it with t=0
+                let test = func(0);
+                if (typeof test !== "number" || isNaN(test)) {
+                    // allow but warn
+                    console.warn("Evaluator produced non-number on test:", expr, test);
+                }
+            } catch (e) {
+                throw new Error("Invalid expression: " + expr + " / " + e.message);
+            }
+
+            return func;
+        }
+
+
+        // ============================================
+        // FUNCTION MODE – COMPUTE 100 POINTS (robust)
+        // ============================================
+        function computeFunction() {
+            const Aexpr = document.getElementById("A").value.trim();
+            const Cexpr = document.getElementById("C").value.trim();
+
+            const Bexpr = document.getElementById("B").value.trim();
+            const Dexpr = document.getElementById("D").value.trim();
+
+            const fX = document.getElementById("funcX").value;
+            const fY = document.getElementById("funcY").value;
+
+            // Build evaluators once
+            let Afunc, Cfunc, Bfunc, Dfunc;
+            try {
+                Afunc = makeEvaluator(Aexpr || "1");
+                Cfunc = makeEvaluator(Cexpr || "1");
+                Bfunc = makeEvaluator(Bexpr || "1");
+                Dfunc = makeEvaluator(Dexpr || "1");
+            } catch (err) {
+                alert(err.message);
+                return;
+            }
+
+            // We'll compute periods from B and D evaluated at t=0 as an approximation
+            let B0 = Bfunc(0);
+            let D0 = Dfunc(0);
+            // if 0 or NaN, try t=1
+            if (!isFinite(B0) || B0 === 0) {
+                B0 = Bfunc(1) || B0;
+            }
+            if (!isFinite(D0) || D0 === 0) {
+                D0 = Dfunc(1) || D0;
+            }
+
+            // If B0 or D0 still zero or NaN, set to 1 to avoid division by zero
+            if (!isFinite(B0) || B0 === 0) B0 = 1;
+            if (!isFinite(D0) || D0 === 0) D0 = 1;
+
+            // periods
+            let periodX = (2 * Math.PI) / Math.abs(B0);
+            let periodY = (2 * Math.PI) / Math.abs(D0);
+            let finalPeriod = Math.max(periodX, periodY);
+
+            const N = 100;
+
+            // ---> Replace the above block with the corrected loop below:
+            points = [];
+            for (let i = 0; i < N; i++) {
+                let t = (i / (N - 1)) * finalPeriod;
+
+                let Aeval = Number(Afunc(t));
+                let Ceval = Number(Cfunc(t));
+
+                // Interpret Bexpr and Dexpr as the actual argument to sin/cos (e.g. "2*pi*t/100")
+                let sinArgX = Number(Bfunc(t));
+                let sinArgY = Number(Dfunc(t));
+
+                if (!isFinite(Aeval)) Aeval = 0;
+                if (!isFinite(Ceval)) Ceval = 0;
+                if (!isFinite(sinArgX)) sinArgX = 0;
+                if (!isFinite(sinArgY)) sinArgY = 0;
+
+                let fxVal = (fX === "sin") ? Math.sin(sinArgX) : Math.cos(sinArgX);
+                let fyVal = (fY === "sin") ? Math.sin(sinArgY) : Math.cos(sinArgY);
+
+                let xMM = Math.round(Aeval * fxVal * 1000);
+                let yMM = Math.round(Ceval * fyVal * 1000);
+
+                xMM = Math.max(-32768, Math.min(32767, xMM));
+                yMM = Math.max(-32768, Math.min(32767, yMM));
+
+                points.push({ x: xMM, y: yMM });
+            }
+
+            updateCount();
+            updateCharts();
+        }
+
+        function computeThetaDeg(p0, p1) {
+            let dx = p1.x - p0.x;
+            let dy = p1.y - p0.y;
+            let theta = Math.atan2(dy, dx);   // radians
+            return Math.round(theta * 180 / Math.PI);
+        }
+
+        // ============================================
+        // CLEAR ARRAY
+        // ============================================
+        function clearArray() {
+            if (points.length > 0 && !confirm("Are you sure you want to clear all points?")) {
+                return;
+            }
+            points = [];
+            updateCount();
+            updateCharts();
+        }
+
+
+        // ============================================
+        // SEND ARRAY
+        // ============================================
+        async function sendArray() {
+            if (points.length === 0) {
+                alert("No points to send. Add points first.");
+                return;
+            }
+            
+            if (ws.readyState !== 1) {
+                alert("WebSocket not connected");
+                return;
+            }
+
+            ws.send("START");
+
+            for (let p of points) {
+                let buf = new ArrayBuffer(4);
+                let dv = new DataView(buf);
+
+                dv.setInt16(0, p.x);
+                dv.setInt16(2, p.y);
+
+                ws.send(buf);
+                await new Promise(r => setTimeout(r, 5));
+            }
+
+            ws.send("END");
+            alert(`Path with ${points.length} points sent successfully!`);
+        }
+
+
+        // ============================================
+        // CHARTS
+        // ============================================
+        let chartX, chartY, chartXY;
+
+        function initCharts() {
+            const blueColor = 'rgb(59, 130, 246)';
+            const greenColor = 'rgb(16, 185, 129)';
+            
+            // X vs Y chart (larger, full width)
+            // X vs Y chart (larger, full width, taller)
+chartXY = new Chart(document.getElementById("chartXY"), {
+            type: "scatter",
+            data: { 
+                datasets: [{ 
+                    label: "X vs Y", 
+                    data: [],
+                    backgroundColor: 'rgba(30, 64, 175, 0.7)',
+                    borderColor: 'rgb(30, 64, 175)',
+                    borderWidth: 1,
+                    pointRadius: 4
+                }] 
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false, // Important: Let container control size
+                // Force equal scaling for both axes
+                scales: {
+                    x: { 
+                        title: { 
+                            display: true, 
+                            text: "X (mm)",
+                            color: '#475569',
+                            font: { size: 14 }
+                        },
+                        grid: { color: '#e2e8f0' },
+                        ticks: {
+                            callback: function(value) {
+                                return value;
+                            }
+                        }
+                    },
+                    y: { 
+                        title: { 
+                            display: true, 
+                            text: "Y (mm)",
+                            color: '#475569',
+                            font: { size: 14 }
+                        },
+                        grid: { color: '#e2e8f0' },
+                        ticks: {
+                            callback: function(value) {
+                                return value;
+                            }
+                        }
+                    }
+                },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return `X: ${context.parsed.x}, Y: ${context.parsed.y}`;
+                            }
+                        }
+                    }
+                },
+                // Remove aspectRatio to let container height control it
+                // aspectRatio: 1.5, // Remove this line
+            }
+        });
+
+            // X vs Index chart (smaller, in bottom row)
+            chartX = new Chart(document.getElementById("chartX"), {
+                type: "scatter",
+                data: { 
+                    datasets: [{ 
+                        label: "X vs t", 
+                        data: [],
+                        backgroundColor: blueColor,
+                        borderColor: blueColor,
+                        borderWidth: 1,
+                        pointRadius: 3
+                    }] 
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    aspectRatio: 2, // Wider aspect for bottom row charts
+                    scales: {
+                        x: { 
+                            title: { 
+                                display: true, 
+                                text: "Indíce",
+                                color: '#475569'
+                            },
+                            grid: { color: '#e2e8f0' }
+                        },
+                        y: { 
+                            title: { 
+                                display: true, 
+                                text: "X (mm)",
+                                color: '#475569'
+                            },
+                            grid: { color: '#e2e8f0' }
+                        }
+                    },
+                    plugins: {
+                        legend: { display: false }
+                    }
+                }
+            });
+
+            // Y vs Index chart (smaller, in bottom row)
+            chartY = new Chart(document.getElementById("chartY"), {
+                type: "scatter",
+                data: { 
+                    datasets: [{ 
+                        label: "Y vs t", 
+                        data: [],
+                        backgroundColor: greenColor,
+                        borderColor: greenColor,
+                        borderWidth: 1,
+                        pointRadius: 3
+                    }] 
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    aspectRatio: 2, // Wider aspect for bottom row charts
+                    scales: {
+                        x: { 
+                            title: { 
+                                display: true, 
+                                text: "Índice",
+                                color: '#475569'
+                            },
+                            grid: { color: '#e2e8f0' }
+                        },
+                        y: { 
+                            title: { 
+                                display: true, 
+                                text: "Y (mm)",
+                                color: '#475569'
+                            },
+                            grid: { color: '#e2e8f0' }
+                        }
+                    },
+                    plugins: {
+                        legend: { display: false }
+                    }
+                }
+            });
+        }
+
+        function updateCharts() {
+            // Update X vs Y chart
+            chartXY.data.datasets[0].data = points.map(p => ({ x: p.x, y: p.y }));
+            
+            // Force equal scaling for X vs Y chart
+            if (points.length > 0) {
+                const xValues = points.map(p => p.x);
+                const yValues = points.map(p => p.y);
+                const xMin = Math.min(...xValues);
+                const xMax = Math.max(...xValues);
+                const yMin = Math.min(...yValues);
+                const yMax = Math.max(...yValues);
+                
+                // Get the overall min and max
+                const overallMin = Math.min(xMin, yMin);
+                const overallMax = Math.max(xMax, yMax);
+                
+                // Add some padding (10%)
+                const padding = (overallMax - overallMin) * 0.1;
+                const paddedMin = overallMin - padding;
+                const paddedMax = overallMax + padding;
+                
+                // Set equal scales for both axes
+                chartXY.options.scales.x.min = paddedMin;
+                chartXY.options.scales.x.max = paddedMax;
+                chartXY.options.scales.y.min = paddedMin;
+                chartXY.options.scales.y.max = paddedMax;
+            }
+            
+            chartXY.update();
+            
+            // Update X vs Index chart
+            chartX.data.datasets[0].data = points.map((p, i) => ({ x: i, y: p.x }));
+            chartX.update();
+
+            // Update Y vs Index chart
+            chartY.data.datasets[0].data = points.map((p, i) => ({ x: i, y: p.y }));
+            chartY.update();
+        }
+
+        // ============================================
+// DRAWING CANVAS FUNCTIONALITY (FIXED)
+// ============================================
+const drawingCanvas = document.getElementById("drawingCanvas");
+const ctx = drawingCanvas.getContext("2d");
+
+// Configuración mejorada
+const CANVAS_WIDTH = 500;
+const CANVAS_HEIGHT = 500;
+const SPACING = 12; // Espaciado entre puntos (reducido para más precisión)
+const SMOOTH_LEVEL = 6; // Nivel de suavizado
+
+// Establecer el tamaño real del canvas
+drawingCanvas.width = CANVAS_WIDTH;
+drawingCanvas.height = CANVAS_HEIGHT;
+
+// Conversión de unidades
+const CANVAS_SIZE_METERS = 10; // 10 metros cuadrados
+const CANVAS_SIZE_MM = 10000; // 10 metros = 10000 mm
+const METERS_PER_PIXEL = CANVAS_SIZE_METERS / CANVAS_WIDTH; // 10m / 500px = 0.02 m/px
+const MM_PER_PIXEL = CANVAS_SIZE_MM / CANVAS_WIDTH; // 10000mm / 500px = 20 mm/px
+
+// Variables de estado
+let isDrawing = false;
+let rawPoints = [];
+let smoothedPoints = [];
+let finalPoints = [];
+let storedCoordinates = null;
+
+// Función para obtener coordenadas del mouse corregidas
+function getMousePos(canvas, evt) {
+    const rect = canvas.getBoundingClientRect();
+    
+    // Calcular la escala del canvas
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    
+    // Ajustar coordenadas según la escala
+    return {
+        x: (evt.clientX - rect.left) * scaleX,
+        y: (evt.clientY - rect.top) * scaleY
+    };
+}
+
+// Dibujar cuadrícula y ejes
+function drawGrid() {
+    ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+    
+    // Dibujar cuadrícula
+    ctx.strokeStyle = "#e2e8f0";
+    ctx.lineWidth = 1;
+    
+    const gridSize = 50; // 50px = 1 metro (500px/10m = 50px/m)
+    
+    // Líneas verticales
+    for (let x = 0; x <= CANVAS_WIDTH; x += gridSize) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, CANVAS_HEIGHT);
+        ctx.stroke();
+    }
+    
+    // Líneas horizontales
+    for (let y = 0; y <= CANVAS_HEIGHT; y += gridSize) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(CANVAS_WIDTH, y);
+        ctx.stroke();
+    }
+    
+    // Dibujar ejes principales
+    ctx.strokeStyle = "#3b82f6";
+    ctx.lineWidth = 2;
+    
+    // Eje Y (vertical)
+    ctx.beginPath();
+    ctx.moveTo(CANVAS_WIDTH / 2, 0);
+    ctx.lineTo(CANVAS_WIDTH / 2, CANVAS_HEIGHT);
+    ctx.stroke();
+    
+    // Eje X (horizontal)
+    ctx.beginPath();
+    ctx.moveTo(0, CANVAS_HEIGHT / 2);
+    ctx.lineTo(CANVAS_WIDTH, CANVAS_HEIGHT / 2);
+    ctx.stroke();
+    
+    // Etiquetas de metros
+    ctx.fillStyle = "#475569";
+    ctx.font = "12px 'Roboto Mono', monospace";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    
+    // Etiquetas del eje X
+    for (let x = 0; x <= CANVAS_WIDTH; x += gridSize) {
+        const metersX = (x - CANVAS_WIDTH/2) * METERS_PER_PIXEL;
+        if (Math.abs(metersX) <= 5 && Math.abs(metersX) % 1 === 0) {
+            ctx.fillText(metersX.toString(), x, CANVAS_HEIGHT/2 + 15);
+        }
+    }
+    
+    // Etiquetas del eje Y
+    for (let y = 0; y <= CANVAS_HEIGHT; y += gridSize) {
+        const metersY = -(y - CANVAS_HEIGHT/2) * METERS_PER_PIXEL; // Negativo porque Y crece hacia abajo
+        if (Math.abs(metersY) <= 5 && Math.abs(metersY) % 1 === 0 && y !== CANVAS_HEIGHT/2) {
+            ctx.fillText(metersY.toString(), CANVAS_WIDTH/2 - 15, y);
+        }
+    }
+}
+
+// Dibujar segmento de línea mientras se dibuja
+function drawLineSegment(x1, y1, x2, y2) {
+    ctx.strokeStyle = "#ef4444";
+    ctx.lineWidth = 3;
+    ctx.lineCap = "round";
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.stroke();
+}
+
+// Dibujar trayectoria suavizada
+function drawPreviewPath(points) {
+    if (points.length < 2) return;
+    
+    ctx.strokeStyle = "#3b82f6";
+    ctx.lineWidth = 3;
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    ctx.beginPath();
+    ctx.moveTo(points[0][0], points[0][1]);
+    
+    for (let i = 1; i < points.length; i++) {
+        ctx.lineTo(points[i][0], points[i][1]);
+    }
+    ctx.stroke();
+}
+
+// Algoritmo de suavizado mejorado
+function smoothPathEnhanced(points, iterations = 3) {
+    if (points.length < 3) return [...points];
+    
+    let currentPoints = [...points];
+    
+    for (let iter = 0; iter < iterations; iter++) {
+        const newPoints = [];
+        newPoints.push(currentPoints[0]);
+        
+        for (let i = 0; i < currentPoints.length - 1; i++) {
+            const [x1, y1] = currentPoints[i];
+            const [x2, y2] = currentPoints[i + 1];
+            
+            const strength = 0.2 + (0.65 / iterations) * iter;
+            const qRatio = 0.8 - (strength * 0.3);
+            const rRatio = 0.2 + (strength * 0.3);
+            
+            newPoints.push([
+                qRatio * x1 + (1 - qRatio) * x2,
+                qRatio * y1 + (1 - qRatio) * y2
+            ]);
+            
+            newPoints.push([
+                rRatio * x1 + (1 - rRatio) * x2,
+                rRatio * y1 + (1 - rRatio) * y2
+            ]);
+        }
+        
+        newPoints.push(currentPoints[currentPoints.length - 1]);
+        currentPoints = newPoints;
+    }
+    
+    return currentPoints;
+}
+
+// Suavizado Gaussiano adicional
+function applyGaussianSmooth(points, sigma = 1.0) {
+    if (points.length < 5) return [...points];
+    
+    const kernel = [];
+    const kernelSize = 5;
+    const halfSize = Math.floor(kernelSize / 2);
+    
+    let sum = 0;
+    for (let i = 0; i < kernelSize; i++) {
+        const x = i - halfSize;
+        const value = Math.exp(-(x * x) / (2 * sigma * sigma));
+        kernel.push(value);
+        sum += value;
+    }
+    
+    for (let i = 0; i < kernelSize; i++) {
+        kernel[i] /= sum;
+    }
+    
+    const smoothed = [];
+    
+    for (let i = 0; i < points.length; i++) {
+        let sumX = 0, sumY = 0;
+        
+        for (let j = -halfSize; j <= halfSize; j++) {
+            const idx = Math.max(0, Math.min(points.length - 1, i + j));
+            const weight = kernel[j + halfSize];
+            sumX += points[idx][0] * weight;
+            sumY += points[idx][1] * weight;
+        }
+        
+        smoothed.push([sumX, sumY]);
+    }
+    
+    return smoothed;
+}
+
+// Combinación de suavizados
+function smoothPathCombined(points, iterations) {
+    if (points.length < 3) return [...points];
+    
+    let smoothed = smoothPathEnhanced(points, iterations);
+    
+    if (iterations >= 4) smoothed = applyGaussianSmooth(smoothed, 1.0);
+    if (iterations >= 5) smoothed = applyGaussianSmooth(smoothed, 1.2);
+    if (iterations >= 6) smoothed = applyGaussianSmooth(smoothed, 1.5);
+    
+    return smoothed;
+}
+
+// Remuestreo de la ruta con espaciado fijo
+function resamplePath(points, spacing) {
+    if (points.length < 2) return [...points];
+    
+    let result = [points[0]];
+    let distAccum = 0;
+    const pointsCopy = [...points];
+    
+    for (let i = 1; i < pointsCopy.length; i++) {
+        const [x1, y1] = pointsCopy[i - 1];
+        const [x2, y2] = pointsCopy[i];
+        const dx = x2 - x1;
+        const dy = y2 - y1;
+        const segmentLength = Math.sqrt(dx * dx + dy * dy);
+        
+        if (segmentLength + distAccum >= spacing) {
+            const ratio = (spacing - distAccum) / segmentLength;
+            const nx = x1 + ratio * dx;
+            const ny = y1 + ratio * dy;
+            result.push([nx, ny]);
+            
+            pointsCopy.splice(i, 0, [nx, ny]);
+            distAccum = 0;
+        } else {
+            distAccum += segmentLength;
+        }
+    }
+    
+    return result;
+}
+
+// Convertir coordenadas de píxeles a milímetros
+function convertToMillimeters(points) {
+    const mmPoints = [];
+    
+    for (const [pxX, pxY] of points) {
+        // Mover origen al centro del canvas
+        const centeredX = pxX - CANVAS_WIDTH / 2;
+        const centeredY = CANVAS_HEIGHT / 2 - pxY; // Invertir eje Y
+        
+        // Convertir a milímetros
+        const mmX = Math.round(centeredX * MM_PER_PIXEL);
+        const mmY = Math.round(centeredY * MM_PER_PIXEL);
+        
+        mmPoints.push({ x: mmX, y: mmY });
+    }
+    
+    return mmPoints;
+}
+
+// Inicializar canvas de dibujo
+function initDrawingCanvas() {
+    drawGrid();
+    
+    // Event listeners para dibujo
+    drawingCanvas.addEventListener("mousedown", (e) => {
+        isDrawing = true;
+        rawPoints = [];
+        smoothedPoints = [];
+        storedCoordinates = null;
+        
+        const pos = getMousePos(drawingCanvas, e);
+        rawPoints.push([pos.x, pos.y]);
+        
+        document.getElementById("drawingStatusText").textContent = "Dibujando... Suelta para procesar.";
+    });
+    
+    drawingCanvas.addEventListener("mouseup", () => {
+        isDrawing = false;
+        
+        if (rawPoints.length < 2) {
+            document.getElementById("drawingStatusText").textContent = "Dibuja una ruta más larga. Se necesitan al menos 2 puntos.";
+            return;
+        }
+        
+        document.getElementById("drawingStatusText").textContent = "Procesando y suavizando ruta...";
+        
+        // Aplicar suavizado
+        smoothedPoints = smoothPathCombined(rawPoints, SMOOTH_LEVEL);
+        
+        // Redibujar cuadrícula
+        drawGrid();
+        
+        // Dibujar trayectoria suavizada
+        drawPreviewPath(smoothedPoints);
+        
+        // Remuestrear trayectoria
+        finalPoints = resamplePath(smoothedPoints, SPACING);
+        
+        // Dibujar puntos finales
+        ctx.fillStyle = "#10b981";
+        for (const [x, y] of finalPoints) {
+            ctx.beginPath();
+            ctx.arc(x, y, 3, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        
+        // Dibujar puntos de inicio y fin
+        if (finalPoints.length > 0) {
+            // Punto de inicio (naranja)
+            ctx.fillStyle = "#f59e0b";
+            ctx.beginPath();
+            ctx.arc(finalPoints[0][0], finalPoints[0][1], 5, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Punto de fin (rojo)
+            ctx.fillStyle = "#ef4444";
+            ctx.beginPath();
+            ctx.arc(finalPoints[finalPoints.length - 1][0], finalPoints[finalPoints.length - 1][1], 5, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        
+        // Convertir y almacenar coordenadas
+        storedCoordinates = convertToMillimeters(finalPoints);
+        
+        document.getElementById("drawingPointsCount").textContent = storedCoordinates.length;
+        document.getElementById("drawingStatusText").textContent = `Ruta procesada! ${storedCoordinates.length} puntos listos.`;
+    });
+    
+    drawingCanvas.addEventListener("mousemove", (e) => {
+        if (!isDrawing) return;
+        
+        const pos = getMousePos(drawingCanvas, e);
+        
+        // Solo agregar punto si se movió suficientemente
+        if (rawPoints.length > 0) {
+            const last = rawPoints[rawPoints.length - 1];
+            const dx = pos.x - last[0];
+            const dy = pos.y - last[1];
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            
+            if (distance < 2) return;
+        }
+        
+        if (rawPoints.length > 0) {
+            const last = rawPoints[rawPoints.length - 1];
+            drawLineSegment(last[0], last[1], pos.x, pos.y);
+        }
+        
+        rawPoints.push([pos.x, pos.y]);
+    });
+    
+    // Botón para limpiar canvas
+    document.getElementById("clearCanvasBtn").addEventListener("click", () => {
+        drawGrid();
+        rawPoints = [];
+        smoothedPoints = [];
+        finalPoints = [];
+        storedCoordinates = null;
+        document.getElementById("drawingStatusText").textContent = "Canvas limpiado. Dibuja una nueva ruta.";
+        document.getElementById("drawingPointsCount").textContent = "0";
+    });
+    
+    // Botón para guardar dibujo
+    document.getElementById("saveDrawingBtn").addEventListener("click", () => {
+        if (!storedCoordinates || storedCoordinates.length === 0) {
+            alert("No hay ruta dibujada para guardar. Por favor dibuja una ruta primero.");
+            return;
+        }
+        
+        // Agregar puntos dibujados al array principal
+        points = points.concat(storedCoordinates);
+        
+        // Actualizar contador y gráficos
+        updateCount();
+        updateCharts();
+        
+        // Mostrar mensaje de éxito
+        document.getElementById("drawingStatusText").textContent = `Ruta guardada! ${storedCoordinates.length} puntos añadidos.`;
+        document.getElementById("drawingPointsCount").textContent = "0";
+        
+        // Opcionalmente limpiar el canvas
+        drawGrid();
+        rawPoints = [];
+        smoothedPoints = [];
+        finalPoints = [];
+        storedCoordinates = null;
+        
+        alert(`Ruta dibujada guardada exitosamente! Se añadieron ${storedCoordinates.length} puntos a la ruta.`);
+    });
+}
+
+// Inicializar cuando la página cargue
+window.addEventListener('load', function() {
+    initDrawingCanvas();
+});
+
+        window.onload = initCharts;
+    </script>
+</body>
+</html>
