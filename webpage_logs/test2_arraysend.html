@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Send Path</title>
+</head>
+<body>
+    <h2>Path Sender</h2>
+
+    X: <input id="x" type="number" min="-32768" max="32767">
+    Y: <input id="y" type="number" min="-32768" max="32767">
+    <button onclick="addPoint()">Add</button>
+    <button onclick="clearArray()">Clear</button>
+    <button onclick="sendArray()">Send Array</button>
+
+    <p id="labelCount">Number of entries: 0</p>
+    <p id="status">Status: Not Connected</p>
+
+    <script>
+        // CHANGE TO YOUR ESP32 IP:
+        let ws = new WebSocket("ws://192.168.137.144:81");
+
+        let points = [];
+
+        ws.onopen = () => {
+            document.getElementById("status").innerText = "Status: Connected";
+        };
+
+        ws.onclose = () => {
+            document.getElementById("status").innerText = "Status: Disconnected";
+        };
+
+        function updateCount() {
+            document.getElementById("labelCount").innerText =
+                "Number of entries: " + points.length;
+        }
+
+        function addPoint() {
+            let xVal = parseInt(document.getElementById("x").value);
+            let yVal = parseInt(document.getElementById("y").value);
+
+            if (isNaN(xVal) || xVal < -32768 || xVal > 32767) {
+                alert("X must be a 2-byte signed integer");
+                return;
+            }
+
+            if (isNaN(yVal) || yVal < -32768 || yVal > 32767) {
+                alert("Y must be a 2-byte signed integer");
+                return;
+            }
+
+            points.push({ x: xVal, y: yVal });
+            updateCount();
+        }
+
+        function clearArray() {
+            points = [];
+            updateCount();
+        }
+
+        async function sendArray() {
+            if (ws.readyState !== 1) {
+                alert("WebSocket not connected");
+                return;
+            }
+
+            ws.send("START");
+
+            for (let p of points) {
+                let buf = new ArrayBuffer(4);
+                let dv = new DataView(buf);
+
+                dv.setInt16(0, p.x);
+                dv.setInt16(2, p.y);
+
+                ws.send(buf);  // binary frame
+
+                await new Promise(r => setTimeout(r, 10));  // 10ms pacing
+            }
+
+            ws.send("END");
+        }
+    </script>
+</body>
+</html>

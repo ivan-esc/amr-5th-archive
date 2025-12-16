@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Send Byte</title>
+</head>
+<body>
+    <h2>Send a Byte to ESP32 (0-255)</h2>
+
+    <input id="byteInput" type="number" min="0" max="255" placeholder="0-255">
+    <button onclick="sendByte()">Send</button>
+
+    <p id="status">Connecting...</p>
+
+    <script>
+        // CHANGE THIS IP TO YOUR ESP32’s IP
+        let ws = new WebSocket("ws://192.168.0.42:81");
+
+        ws.onopen = () => {
+            document.getElementById("status").innerText = "Connected!";
+        };
+
+        ws.onclose = () => {
+            document.getElementById("status").innerText = "Disconnected.";
+        };
+
+        function sendByte() {
+            let input = document.getElementById("byteInput").value;
+            let value = parseInt(input);
+
+            if (isNaN(value) || value < 0 || value > 255) {
+                alert("Value must be between 0 and 255.");
+                return;
+            }
+
+            ws.send(value.toString());
+        }
+    </script>
+</body>
+</html>

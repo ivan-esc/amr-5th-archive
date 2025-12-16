@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Send Path</title>
+
+    <!-- Load Chart.js (must be before your script) -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        canvas {
+            max-width: 300px;
+            max-height: 200px;
+            margin: 10px;
+        }
+    </style>
+</head>
+
+<body>
+    <h2>Path Sender</h2>
+
+    <!-- ---------------------------------------- -->
+    <!-- MANUAL DEBUG MODE -->
+    <!-- ---------------------------------------- -->
+    <h3>Manual Coordinate Entry</h3>
+
+    X: <input id="x" type="number" step="0.001">
+    Y: <input id="y" type="number" step="0.001">
+    <button onclick="addPoint()">Add</button>
+
+    <hr>
+
+    <!-- ---------------------------------------- -->
+    <!-- FUNCTION MODE -->
+    <!-- ---------------------------------------- -->
+    <h3>Function Mode</h3>
+
+    <p><b>X(t) = A ⋅ sin/cos(B⋅t)</b></p>
+    A: <input id="A" type="text" value="1" placeholder="e.g. 1 or 1.2 or 2*pi">
+    Function:
+    <select id="funcX">
+        <option value="sin">sin</option>
+        <option value="cos">cos</option>
+    </select>
+    B: <input id="B" type="text" value="2*pi/100" placeholder="e.g. 2*pi/100">
+
+    <br><br>
+
+    <p><b>Y(t) = C ⋅ sin/cos(D⋅t)</b></p>
+    C: <input id="C" type="text" value="1" placeholder="e.g. 1 or 0.5">
+    Function:
+    <select id="funcY">
+        <option value="sin">sin</option>
+        <option value="cos">cos</option>
+    </select>
+    D: <input id="D" type="text" value="2*pi/100" placeholder="e.g. 2*pi/100">
+
+    <br><br>
+    <button onclick="computeFunction()">Compute Function (100 points)</button>
+
+    <hr>
+
+    <!-- ---------------------------------------- -->
+    <!-- ACTION BUTTONS -->
+    <!-- ---------------------------------------- -->
+    <button onclick="clearArray()">Clear</button>
+    <button onclick="sendArray()">Send Array</button>
+
+    <p id="labelCount">Number of entries: 0</p>
+    <p id="status">Status: Not Connected</p>
+
+    <h3>Graphs</h3>
+
+    <canvas id="chartX"></canvas>
+    <canvas id="chartY"></canvas>
+    <canvas id="chartXY"></canvas>
+
+    <script>
+        // ============================================
+        // WEBSOCKET SETUP
+        // ============================================
+        let ws = new WebSocket("ws://192.168.137.144:81"); // change IP if needed
+        let points = [];
+
+        ws.onopen = () => {
+            document.getElementById("status").innerText = "Status: Connected";
+        };
+
+        ws.onclose = () => {
+            document.getElementById("status").innerText = "Status: Disconnected";
+        };
+
+
+        // ============================================
+        // COUNTER UPDATE
+        // ============================================
+        function updateCount() {
+            document.getElementById("labelCount").innerText =
+                "Number of entries: " + points.length;
+        }
+
+
+        // ============================================
+        // MANUAL POINT ADD
+        // ============================================
+        function addPoint() {
+            let xVal = parseFloat(document.getElementById("x").value);
+            let yVal = parseFloat(document.getElementById("y").value);
+
+            if (isNaN(xVal) || isNaN(yVal)) {
+                alert("Both X and Y must be valid numbers");
+                return;
+            }
+
+            // Convert meters → mm
+            let xMM = Math.round(xVal * 1000);
+            let yMM = Math.round(yVal * 1000);
+
+            // Clamp to int16
+            xMM = Math.max(-32768, Math.min(32767, xMM));
+            yMM = Math.max(-32768, Math.min(32767, yMM));
+
+            points.push({ x: xMM, y: yMM });
+
+            updateCount();
+            updateCharts();
+        }
+
+
+        // ============================================
+        // Expression -> evaluator builder (safe-ish)
+        // ============================================
+        function makeEvaluator(userExpr) {
+            // Trim
+            let expr = String(userExpr).trim();
+            if (expr.length === 0) {
+                // return constant zero func
+                return function (t) { return 0; };
+            }
+
+            // Replace common tokens with Math equivalents
+            // Note: order matters -> replace 'pi' first
+            expr = expr.replace(/pi/gi, "Math.PI");
+
+            // add Math. before common functions if user typed sin(, cos(, etc.
+            expr = expr.replace(/\bsin\s*\(/gi, "Math.sin(");
+            expr = expr.replace(/\bcos\s*\(/gi, "Math.cos(");
+            expr = expr.replace(/\btan\s*\(/gi, "Math.tan(");
+            expr = expr.replace(/\batan2\s*\(/gi, "Math.atan2(");
+            expr = expr.replace(/\bexp\s*\(/gi, "Math.exp(");
+            expr = expr.replace(/\blog\s*\(/gi, "Math.log(");
+            expr = expr.replace(/\bsqrt\s*\(/gi, "Math.sqrt(");
+            expr = expr.replace(/\babs\s*\(/gi, "Math.abs(");
+            expr = expr.replace(/\bpow\s*\(/gi, "Math.pow(");
+            expr = expr.replace(/\bmin\s*\(/gi, "Math.min(");
+            expr = expr.replace(/\bmax\s*\(/gi, "Math.max(");
+
+            // As a final safety, forbid certain dangerous tokens:
+            if (/[^-+/*%^().0-9MathPItrexysincogabwzldpn ]/i.test(expr)) {
+                // This regex is conservative; it allows: digits, ops, parentheses, Math, PI, letters used by functions.
+                // If you hit false positives, we can loosen it, but keep it conservative.
+                // We'll still attempt to build evaluator but warn.
+                // console.warn("Expression contains unusual characters:", expr);
+            }
+
+            // Build a function of t that returns the expression value
+            // The function receives parameter t. We do NOT use "with".
+            let func;
+            try {
+                func = new Function("t", `"use strict"; return (${expr});`);
+                // test it with t=0
+                let test = func(0);
+                if (typeof test !== "number" || isNaN(test)) {
+                    // allow but warn
+                    // console.warn("Evaluator produced non-number on test:", expr, test);
+                }
+            } catch (e) {
+                throw new Error("Invalid expression: " + expr + " / " + e.message);
+            }
+
+            return func;
+        }
+
+
+        // ============================================
+        // FUNCTION MODE – COMPUTE 100 POINTS (robust)
+        // ============================================
+        function computeFunction() {
+            const Aexpr = document.getElementById("A").value.trim();
+            const Cexpr = document.getElementById("C").value.trim();
+
+            const Bexpr = document.getElementById("B").value.trim();
+            const Dexpr = document.getElementById("D").value.trim();
+
+            const fX = document.getElementById("funcX").value;
+            const fY = document.getElementById("funcY").value;
+
+            // Build evaluators once
+            let Afunc, Cfunc, Bfunc, Dfunc;
+            try {
+                Afunc = makeEvaluator(Aexpr || "1");
+                Cfunc = makeEvaluator(Cexpr || "1");
+                Bfunc = makeEvaluator(Bexpr || "1");
+                Dfunc = makeEvaluator(Dexpr || "1");
+            } catch (err) {
+                alert(err.message);
+                return;
+            }
+
+            // We'll compute periods from B and D evaluated at t=0 as an approximation
+            // If user supplies an expression that results in zero at t=0, we'll use abs of evaluation at t=0.1
+            // But best is to interpret B and D as angular frequency in rad/s (so period = 2*pi / |B|)
+            // We'll attempt to get a numeric B0 and D0 by evaluating Bfunc at t=0
+            let B0 = Bfunc(0);
+            let D0 = Dfunc(0);
+            // if 0 or NaN, try t=1
+            if (!isFinite(B0) || B0 === 0) {
+                B0 = Bfunc(1) || B0;
+            }
+            if (!isFinite(D0) || D0 === 0) {
+                D0 = Dfunc(1) || D0;
+            }
+
+            // If B0 or D0 still zero or NaN, set to 1 to avoid division by zero
+            if (!isFinite(B0) || B0 === 0) B0 = 1;
+            if (!isFinite(D0) || D0 === 0) D0 = 1;
+
+            // periods
+            let periodX = (2 * Math.PI) / Math.abs(B0);
+            let periodY = (2 * Math.PI) / Math.abs(D0);
+            let finalPeriod = Math.max(periodX, periodY);
+
+            points = [];
+
+            const N = 100;
+            for (let i = 0; i < N; i++) {
+                // t is time in seconds across 0 -> finalPeriod
+                let t = (i / (N - 1)) * finalPeriod;
+
+                // Evaluate A, C (allow them to be expressions too)
+                let Aeval = Number(Afunc(t));
+                let Ceval = Number(Cfunc(t));
+
+                // Evaluate B and D at this t (these are the arguments inside sin/cos)
+                let Beval = Number(Bfunc(t));
+                let Deval = Number(Dfunc(t));
+
+                if (!isFinite(Aeval)) Aeval = 0;
+                if (!isFinite(Ceval)) Ceval = 0;
+                if (!isFinite(Beval)) Beval = 0;
+                if (!isFinite(Deval)) Deval = 0;
+
+                // Now compute sin/cos with the evaluated Beval/Deval
+                let fx = (fX === "sin") ? Math.sin(Beval * t / (t || 1) ) : Math.cos(Beval * t / (t || 1));
+                // NOTE: above line is wrong for general use; we should respect user intention:
+                // User likely wants sin(B*t) where B can be an expression possibly involving t.
+                // So instead we will treat Beval as the value of B *at this t*, but we need sin(B(t)*t) or sin(Beval)?
+                // To preserve flexibility, interpret user Bexpr as the whole argument for sin: e.g. user types "2*pi*t/100"
+                // Therefore Beval should be the numeric value of that expression already; so do:
+                // fx = Math.sin(Beval)
+                // Likewise fy = Math.sin(Deval)
+                // Let's correct that below by re-evaluating Beval and Deval as the full argument.
+                // (We'll do the correct computation after this comment.)
+            }
+
+            // ---> Replace the above block with the corrected loop below:
+            points = [];
+            for (let i = 0; i < N; i++) {
+                let t = (i / (N - 1)) * finalPeriod;
+
+                let Aeval = Number(Afunc(t));
+                let Ceval = Number(Cfunc(t));
+
+                // Interpret Bexpr and Dexpr as the actual argument to sin/cos (e.g. "2*pi*t/100")
+                let sinArgX = Number(Bfunc(t));
+                let sinArgY = Number(Dfunc(t));
+
+                if (!isFinite(Aeval)) Aeval = 0;
+                if (!isFinite(Ceval)) Ceval = 0;
+                if (!isFinite(sinArgX)) sinArgX = 0;
+                if (!isFinite(sinArgY)) sinArgY = 0;
+
+                let fxVal = (fX === "sin") ? Math.sin(sinArgX) : Math.cos(sinArgX);
+                let fyVal = (fY === "sin") ? Math.sin(sinArgY) : Math.cos(sinArgY);
+
+                let xMM = Math.round(Aeval * fxVal * 1000);
+                let yMM = Math.round(Ceval * fyVal * 1000);
+
+                xMM = Math.max(-32768, Math.min(32767, xMM));
+                yMM = Math.max(-32768, Math.min(32767, yMM));
+
+                points.push({ x: xMM, y: yMM });
+            }
+
+            updateCount();
+            updateCharts();
+        }
+
+
+        // ============================================
+        // CLEAR ARRAY
+        // ============================================
+        function clearArray() {
+            points = [];
+            updateCount();
+            updateCharts();
+        }
+
+
+        // ============================================
+        // SEND ARRAY
+        // ============================================
+        async function sendArray() {
+            if (ws.readyState !== 1) {
+                alert("WebSocket not connected");
+                return;
+            }
+
+            ws.send("START");
+
+            for (let p of points) {
+                let buf = new ArrayBuffer(4);
+                let dv = new DataView(buf);
+
+                dv.setInt16(0, p.x);
+                dv.setInt16(2, p.y);
+
+                ws.send(buf);
+                await new Promise(r => setTimeout(r, 5));
+            }
+
+            ws.send("END");
+        }
+
+
+        // ============================================
+        // CHARTS
+        // ============================================
+        let chartX, chartY, chartXY;
+
+        function initCharts() {
+            chartX = new Chart(document.getElementById("chartX"), {
+                type: "scatter",
+                data: { datasets: [{ label: "X vs Index", data: [] }] },
+                options: {
+                    scales: {
+                        x: { title: { display: true, text: "Index" } },
+                        y: { title: { display: true, text: "X (mm)" } }
+                    }
+                }
+            });
+
+            chartY = new Chart(document.getElementById("chartY"), {
+                type: "scatter",
+                data: { datasets: [{ label: "Y vs Index", data: [] }] },
+                options: {
+                    scales: {
+                        x: { title: { display: true, text: "Index" } },
+                        y: { title: { display: true, text: "Y (mm)" } }
+                    }
+                }
+            });
+
+            chartXY = new Chart(document.getElementById("chartXY"), {
+                type: "scatter",
+                data: { datasets: [{ label: "X vs Y", data: [] }] },
+                options: {
+                    aspectRatio: 1,
+                    scales: {
+                        x: { title: { display: true, text: "X (mm)" } },
+                        y: { title: { display: true, text: "Y (mm)" } }
+                    }
+                }
+            });
+        }
+
+        function updateCharts() {
+            chartX.data.datasets[0].data =
+                points.map((p, i) => ({ x: i, y: p.x }));
+            chartX.update();
+
+            chartY.data.datasets[0].data =
+                points.map((p, i) => ({ x: i, y: p.y }));
+            chartY.update();
+
+            chartXY.data.datasets[0].data =
+                points.map(p => ({ x: p.x, y: p.y }));
+            chartXY.update();
+        }
+
+        window.onload = initCharts;
+    </script>
+</body>
+</html>

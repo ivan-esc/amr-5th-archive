@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Coordinate Canvas Drawer</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+  }
+  #coordBox {
+    width: 500px;
+    height: 200px;
+    margin-top: 20px;
+    display: none; /* Hide the textarea */
+  }
+  .controls {
+    margin-bottom: 15px;
+    display: flex;
+    gap: 15px;
+    align-items: center;
+  }
+  .status {
+    margin-top: 10px;
+    font-size: 14px;
+    color: #666;
+  }
+</style>
+</head>
+<body>
+<h2>Gridded 500×500 Coordinate Canvas</h2>
+<div class="controls">
+  <button id="clearBtn">Clear Canvas</button>
+  <button id="copyBtn">Copy Coordinates</button>
+</div>
+<canvas id="canvas" width="500" height="500" style="border:1px solid black"></canvas>
+<div id="status" class="status">Draw on the canvas. Coordinates will be stored internally.</div>
+<textarea id="coordBox" placeholder="Recorded coordinates will appear here..."></textarea>
+
+<script>
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
+const W = canvas.width;
+const H = canvas.height;
+const grid = 50;
+const SPACING = 15; // Fixed spacing
+const SMOOTH_LEVEL = 6; // Fixed smoothing level
+
+// Conversion constants
+const CANVAS_SIZE_METERS = 10; // 10 meter square
+const CANVAS_SIZE_MM = 10000; // 10 meters = 10000 mm
+const PIXELS_PER_METER = W / CANVAS_SIZE_METERS; // 500px / 10m = 50px/m
+const PIXELS_PER_MM = W / CANVAS_SIZE_MM; // 500px / 10000mm = 0.05px/mm
+
+let drawing = false;
+let rawPoints = [];
+let smoothedPoints = [];
+let finalPoints = [];
+let storedCoordinates = null;
+
+function drawGrid() {
+  ctx.clearRect(0, 0, W, H);
+  ctx.strokeStyle = "#ccc";
+  ctx.lineWidth = 1;
+
+  for (let x = 0; x <= W; x += grid) {
+    ctx.beginPath();
+    ctx.moveTo(x, 0);
+    ctx.lineTo(x, H);
+    ctx.stroke();
+  }
+  for (let y = 0; y <= H; y += grid) {
+    ctx.beginPath();
+    ctx.moveTo(0, y);
+    ctx.lineTo(W, y);
+    ctx.stroke();
+  }
+
+  ctx.strokeStyle = "black";
+  ctx.lineWidth = 3;
+
+  ctx.beginPath();
+  ctx.moveTo(W/2, 0);
+  ctx.lineTo(W/2, H);
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.moveTo(0, H/2);
+  ctx.lineTo(W, H/2);
+  ctx.stroke();
+  
+  // Draw meter indicators
+  ctx.fillStyle = "black";
+  ctx.font = "12px Arial";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  
+  // X-axis labels (in meters)
+  for (let x = 0; x <= W; x += grid) {
+    const metersFromCenter = (x - W/2) / PIXELS_PER_METER;
+    if (Math.abs(metersFromCenter) <= 5) {
+      ctx.fillText(metersFromCenter.toFixed(1), x, H/2 + 15);
+    }
+  }
+  
+  // Y-axis labels (in meters)
+  for (let y = 0; y <= H; y += grid) {
+    const metersFromCenter = (H/2 - y) / PIXELS_PER_METER;
+    if (Math.abs(metersFromCenter) <= 5 && y !== H/2) {
+      ctx.fillText(metersFromCenter.toFixed(1), W/2 - 15, y);
+    }
+  }
+}
+
+function drawLineSegment(x1, y1, x2, y2) {
+  ctx.strokeStyle = "red";
+  ctx.lineWidth = 2;
+  ctx.lineCap = "round";
+  ctx.beginPath();
+  ctx.moveTo(x1, y1);
+  ctx.lineTo(x2, y2);
+  ctx.stroke();
+}
+
+function drawPreviewPath(points) {
+  if (points.length < 2) return;
+  
+  ctx.strokeStyle = "#2196F3"; // Blue
+  ctx.lineWidth = 3;
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+  ctx.beginPath();
+  ctx.moveTo(points[0][0], points[0][1]);
+  
+  for (let i = 1; i < points.length; i++) {
+    ctx.lineTo(points[i][0], points[i][1]);
+  }
+  ctx.stroke();
+}
+
+drawGrid();
+
+canvas.addEventListener("mousedown", e => {
+  drawing = true;
+  rawPoints = [];
+  smoothedPoints = [];
+  storedCoordinates = null;
+  
+  const rect = canvas.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
+  rawPoints.push([x, y]);
+  
+  document.getElementById("status").textContent = "Drawing... Release to process.";
+});
+
+canvas.addEventListener("mouseup", () => {
+  drawing = false;
+  if (rawPoints.length < 2) {
+    document.getElementById("status").textContent = "Draw a longer path. At least 2 points needed.";
+    return;
+  }
+  
+  document.getElementById("status").textContent = "Processing and smoothing path...";
+  
+  // Apply maximum smoothing to points
+  smoothedPoints = smoothPathCombined(rawPoints, SMOOTH_LEVEL);
+  
+  // Redraw grid
+  drawGrid();
+  
+  // Draw smoothed trajectory in blue
+  drawPreviewPath(smoothedPoints);
+  
+  // Resample smoothed trajectory with fixed spacing
+  finalPoints = resamplePath(smoothedPoints, SPACING);
+  
+  // Draw final points
+  ctx.fillStyle = "#4CAF50"; // Green
+  for (const [x, y] of finalPoints) {
+    ctx.beginPath();
+    ctx.arc(x, y, 4, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  
+  // Draw start and end points
+  if (finalPoints.length > 0) {
+    // Start point
+    ctx.fillStyle = "#FF9800"; // Orange
+    ctx.beginPath();
+    ctx.arc(finalPoints[0][0], finalPoints[0][1], 6, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // End point
+    ctx.fillStyle = "#F44336"; // Red
+    ctx.beginPath();
+    ctx.arc(finalPoints[finalPoints.length - 1][0], finalPoints[finalPoints.length - 1][1], 6, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  
+  // Convert pixel coordinates to millimeters and store
+  storedCoordinates = convertToMillimeters(finalPoints);
+  
+  document.getElementById("status").textContent = `Path processed! ${storedCoordinates.x.length} points stored. Click "Copy Coordinates" to copy to clipboard.`;
+});
+
+canvas.addEventListener("mousemove", e => {
+  if (!drawing) return;
+  
+  const rect = canvas.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
+  
+  // Add point only if it's sufficiently far from previous one
+  if (rawPoints.length > 0) {
+    const last = rawPoints[rawPoints.length - 1];
+    const dx = x - last[0];
+    const dy = y - last[1];
+    const distance = Math.sqrt(dx*dx + dy*dy);
+    
+    // Only add point if moved at least 3 pixels (collect more points for better smoothing)
+    if (distance < 3) return;
+  }
+  
+  if (rawPoints.length > 0) {
+    const last = rawPoints[rawPoints.length - 1];
+    drawLineSegment(last[0], last[1], x, y);
+  }
+  
+  rawPoints.push([x, y]);
+});
+
+// Enhanced smoothing algorithm with stronger effect
+function smoothPathEnhanced(points, iterations = 3) {
+  if (points.length < 3) return [...points];
+  
+  let currentPoints = [...points];
+  
+  for (let iter = 0; iter < iterations; iter++) {
+    const newPoints = [];
+    
+    // Keep first point
+    newPoints.push(currentPoints[0]);
+    
+    for (let i = 0; i < currentPoints.length - 1; i++) {
+      const [x1, y1] = currentPoints[i];
+      const [x2, y2] = currentPoints[i + 1];
+      
+      // For stronger smoothing, use more aggressive ratios
+      const strength = 0.2 + (0.65 / (iterations)) * iter; // Adaptive strength
+      const qRatio = 0.8 - (strength * 0.3);
+      const rRatio = 0.2 + (strength * 0.3);
+      
+      const qx = qRatio * x1 + (1 - qRatio) * x2;
+      const qy = qRatio * y1 + (1 - qRatio) * y2;
+      const rx = rRatio * x1 + (1 - rRatio) * x2;
+      const ry = rRatio * y1 + (1 - rRatio) * y2;
+      
+      newPoints.push([qx, qy]);
+      newPoints.push([rx, ry]);
+    }
+    
+    // Keep last point
+    newPoints.push(currentPoints[currentPoints.length - 1]);
+    
+    currentPoints = newPoints;
+  }
+  
+  return currentPoints;
+}
+
+// Additional Gaussian smoothing pass for extra smoothness
+function applyGaussianSmooth(points, sigma = 1.0) {
+  if (points.length < 5) return [...points];
+  
+  const kernel = [];
+  const kernelSize = 5;
+  const halfSize = Math.floor(kernelSize / 2);
+  
+  // Create Gaussian kernel
+  let sum = 0;
+  for (let i = 0; i < kernelSize; i++) {
+    const x = i - halfSize;
+    const value = Math.exp(-(x * x) / (2 * sigma * sigma));
+    kernel.push(value);
+    sum += value;
+  }
+  
+  // Normalize kernel
+  for (let i = 0; i < kernelSize; i++) {
+    kernel[i] /= sum;
+  }
+  
+  const smoothed = [];
+  
+  for (let i = 0; i < points.length; i++) {
+    let sumX = 0;
+    let sumY = 0;
+    
+    for (let j = -halfSize; j <= halfSize; j++) {
+      const idx = Math.max(0, Math.min(points.length - 1, i + j));
+      const weight = kernel[j + halfSize];
+      sumX += points[idx][0] * weight;
+      sumY += points[idx][1] * weight;
+    }
+    
+    smoothed.push([sumX, sumY]);
+  }
+  
+  return smoothed;
+}
+
+// Combined smoothing with Chaikin + Gaussian
+function smoothPathCombined(points, iterations) {
+  if (points.length < 3) return [...points];
+  
+  // First apply Chaikin smoothing
+  let smoothed = smoothPathEnhanced(points, iterations);
+  
+  // Then apply Gaussian smoothing for extra smoothness
+  if (iterations >= 4) {
+    smoothed = applyGaussianSmooth(smoothed, 1.0);
+  }
+  
+  if (iterations >= 5) {
+    smoothed = applyGaussianSmooth(smoothed, 1.2);
+  }
+  
+  if (iterations >= 6) {
+    smoothed = applyGaussianSmooth(smoothed, 1.5);
+  }
+  
+  return smoothed;
+}
+
+function resamplePath(points, spacing) {
+  if (points.length < 2) return [...points];
+  
+  let result = [];
+  let distAccum = 0;
+  
+  result.push(points[0]);
+  
+  for (let i = 1; i < points.length; i++) {
+    const [x1, y1] = points[i - 1];
+    const [x2, y2] = points[i];
+    const dx = x2 - x1;
+    const dy = y2 - y1;
+    const segmentLength = Math.sqrt(dx*dx + dy*dy);
+    
+    if (segmentLength + distAccum >= spacing) {
+      const ratio = (spacing - distAccum) / segmentLength;
+      const nx = x1 + ratio * dx;
+      const ny = y1 + ratio * dy;
+      result.push([nx, ny]);
+      
+      // Insert point and continue from there
+      points.splice(i, 0, [nx, ny]);
+      distAccum = 0;
+    } else {
+      distAccum += segmentLength;
+    }
+  }
+  
+  return result;
+}
+
+// Convert pixel coordinates to millimeters
+function convertToMillimeters(points) {
+  const xCoords = [];
+  const yCoords = [];
+  
+  for (const [pxX, pxY] of points) {
+    // Convert from canvas coordinates (origin at top-left) to
+    // real world coordinates (origin at center, Y positive up)
+    
+    // 1. Move origin to center (0,0 at center of canvas)
+    const centeredX = pxX - W/2;
+    const centeredY = H/2 - pxY; // Invert Y axis
+    
+    // 2. Convert from pixels to millimeters
+    // Canvas is 500px = 10000mm (10 meters)
+    // So 1px = 10000mm / 500px = 20mm
+    const mmPerPixel = CANVAS_SIZE_MM / W; // 10000 / 500 = 20mm/px
+    
+    const mmX = Math.round(centeredX * mmPerPixel);
+    const mmY = Math.round(centeredY * mmPerPixel);
+    
+    xCoords.push(mmX);
+    yCoords.push(mmY);
+  }
+  
+  return { x: xCoords, y: yCoords };
+}
+
+// Format coordinates for copying
+function formatCoordinatesForCopy(coords) {
+  const xStr = JSON.stringify(coords.x);
+  const yStr = JSON.stringify(coords.y);
+  
+  return `X coordinates (mm):\n${xStr}\n\nY coordinates (mm):\n${yStr}\n\nTotal points: ${coords.x.length}`;
+}
+
+document.getElementById("clearBtn").addEventListener("click", () => {
+  drawGrid();
+  rawPoints = [];
+  smoothedPoints = [];
+  finalPoints = [];
+  storedCoordinates = null;
+  document.getElementById("status").textContent = "Canvas cleared. Draw a new path.";
+});
+
+document.getElementById("copyBtn").addEventListener("click", () => {
+  if (!storedCoordinates) {
+    document.getElementById("status").textContent = "No coordinates to copy. Please draw a path first.";
+    return;
+  }
+  
+  const textToCopy = formatCoordinatesForCopy(storedCoordinates);
+  
+  // Use the Clipboard API
+  navigator.clipboard.writeText(textToCopy).then(() => {
+    document.getElementById("status").textContent = `Coordinates copied to clipboard! ${storedCoordinates.x.length} points.`;
+  }).catch(err => {
+    // Fallback for older browsers
+    const textarea = document.getElementById("coordBox");
+    textarea.value = textToCopy;
+    textarea.style.display = "block";
+    textarea.select();
+    document.execCommand("copy");
+    textarea.style.display = "none";
+    document.getElementById("status").textContent = `Coordinates copied to clipboard! ${storedCoordinates.x.length} points.`;
+  });
+});
+</script>
+</body>
+</html>

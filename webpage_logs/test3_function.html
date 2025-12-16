@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Send Path</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+</head>
+<body>
+    <h2>Path Sender</h2>
+
+    <!-- ---------------------------------------- -->
+    <!-- MANUAL DEBUG MODE (unchanged) -->
+    <!-- ---------------------------------------- -->
+    <h3>Manual Coordinate Entry</h3>
+
+    X: <input id="x" type="number" min="-32768" max="32767">
+    Y: <input id="y" type="number" min="-32768" max="32767">
+    <button onclick="addPoint()">Add</button>
+
+    <hr>
+
+    <!-- ---------------------------------------- -->
+    <!-- FUNCTION MODE -->
+    <!-- ---------------------------------------- -->
+    <h3>Function Mode</h3>
+
+    <p><b>X(t) = A ⋅ sin/cos(B⋅t)</b></p>
+    A: <input id="A" type="number" step="0.01" value="1">
+    Function:
+    <select id="funcX">
+        <option value="sin">sin</option>
+        <option value="cos">cos</option>
+    </select>
+    B: <input id="B" type="number" step="0.01" value="1">
+    
+    <br><br>
+
+    <p><b>Y(t) = C ⋅ sin/cos(D⋅t)</b></p>
+    C: <input id="C" type="number" step="0.01" value="1">
+    Function:
+    <select id="funcY">
+        <option value="sin">sin</option>
+        <option value="cos">cos</option>
+    </select>
+    D: <input id="D" type="number" step="0.01" value="1">
+    
+
+    <br><br>
+
+    <button onclick="computeFunction()">Compute Function (200 points)</button>
+
+    <hr>
+
+    <!-- ---------------------------------------- -->
+    <!-- ACTION BUTTONS (bottom of page) -->
+    <!-- ---------------------------------------- -->
+    <button onclick="clearArray()">Clear</button>
+    <button onclick="sendArray()">Send Array</button>
+
+    <p id="labelCount">Number of entries: 0</p>
+    <p id="status">Status: Not Connected</p>
+
+    <h3>Graphs</h3>
+
+    <canvas id="chartX" width="400" height="200"></canvas>
+    <canvas id="chartY" width="400" height="200"></canvas>
+    <canvas id="chartXY" width="400" height="300"></canvas>
+
+    <script>
+        // CHANGE TO YOUR ESP32 IP:
+        let ws = new WebSocket("ws://192.168.137.144:81");
+        let points = [];
+
+        ws.onopen = () => {
+            document.getElementById("status").innerText = "Status: Connected";
+        };
+
+        ws.onclose = () => {
+            document.getElementById("status").innerText = "Status: Disconnected";
+        };
+
+        function updateCount() {
+            document.getElementById("labelCount").innerText =
+                "Number of entries: " + points.length;
+        }
+
+        // -----------------------------
+        // Manual add (unchanged)
+        // -----------------------------
+        function addPoint() {
+        let xVal = parseFloat(document.getElementById("x").value);
+        let yVal = parseFloat(document.getElementById("y").value);
+
+        if (isNaN(xVal) || isNaN(yVal)) {
+            alert("Both X and Y must be numbers.");
+            return;
+        }
+
+        // Convert meters → mm
+        let xMM = Math.round(xVal * 1000);
+        let yMM = Math.round(yVal * 1000);
+
+        // Clamp to int16
+        xMM = Math.max(-32768, Math.min(32767, xMM));
+        yMM = Math.max(-32768, Math.min(32767, yMM));
+
+        points.push({ x: xMM, y: yMM });
+        updateCount();
+        }
+
+
+        // -----------------------------
+        // FUNCTION MODE: compute 200 points
+        // -----------------------------
+        function computeFunction() {
+        let A = parseFloat(document.getElementById("A").value);
+        let B = parseFloat(document.getElementById("B").value);
+        let C = parseFloat(document.getElementById("C").value);
+        let D = parseFloat(document.getElementById("D").value);
+
+        let fX = document.getElementById("funcX").value;  // sin or cos
+        let fY = document.getElementById("funcY").value;
+
+        points = []; // overwrite current list
+
+        // ---- SAFETY CHECK ----
+        if (B === 0 || D === 0) {
+            alert("B and D cannot be zero (division by zero in period).");
+            return;
+        }
+
+        // ---- Compute periods ----
+        let periodX = (2 * Math.PI) / Math.abs(B);
+        let periodY = (2 * Math.PI) / Math.abs(D);
+
+        // ---- Use the LONGEST period to avoid mismatch ----
+        let finalPeriod = Math.max(periodX, periodY);
+
+        // ---- Generate 100 evenly spaced points ----
+        for (let i = 0; i < 100; i++) {
+            let t = (i / 99) * finalPeriod;   // from 0 → finalPeriod
+
+            let fx = (fX === "sin") ? Math.sin(B * t) : Math.cos(B * t);
+            let fy = (fY === "sin") ? Math.sin(D * t) : Math.cos(D * t);
+
+            // Convert meters → millimeters and clamp to int16
+            let xMM = Math.round(A * fx * 1000);
+            let yMM = Math.round(C * fy * 1000);
+
+            xMM = Math.max(-32768, Math.min(32767, xMM));
+            yMM = Math.max(-32768, Math.min(32767, yMM));
+
+            points.push({ x: xMM, y: yMM });
+        }
+
+        // Update label
+        updateCount();
+    }
+
+
+        // -----------------------------
+        // CLEAR ARRAY
+        // -----------------------------
+        function clearArray() {
+            points = [];
+            updateCount();
+        }
+
+        // -----------------------------
+        // SEND ARRAY (unchanged)
+        // -----------------------------
+        async function sendArray() {
+            if (ws.readyState !== 1) {
+                alert("WebSocket not connected");
+                return;
+            }
+
+            ws.send("START");
+
+            for (let p of points) {
+                let buf = new ArrayBuffer(4);
+                let dv = new DataView(buf);
+
+                dv.setInt16(0, p.x);
+                dv.setInt16(2, p.y);
+
+                ws.send(buf);
+
+                await new Promise(r => setTimeout(r, 10));  // pacing
+            }
+
+            ws.send("END");
+        }
+
+        // ---------------------------
+        // CHART SETUP
+        // ---------------------------
+        let chartX, chartY, chartXY;
+
+        function initCharts() {
+            const ctxX = document.getElementById("chartX").getContext("2d");
+            const ctxY = document.getElementById("chartY").getContext("2d");
+            const ctxXY = document.getElementById("chartXY").getContext("2d");
+
+            chartX = new Chart(ctxX, {
+                type: "scatter",
+                data: { datasets: [{ label: "X vs index", data: [] }] },
+                options: {
+                    scales: {
+                        x: { title: { display: true, text: "Index" } },
+                        y: { title: { display: true, text: "X (mm)" } }
+                    }
+                }
+            });
+
+            chartY = new Chart(ctxY, {
+                type: "scatter",
+                data: { datasets: [{ label: "Y vs index", data: [] }] },
+                options: {
+                    scales: {
+                        x: { title: { display: true, text: "Index" } },
+                        y: { title: { display: true, text: "Y (mm)" } }
+                    }
+                }
+            });
+
+            chartXY = new Chart(ctxXY, {
+                type: "scatter",
+                data: { datasets: [{ label: "X vs Y", data: [] }] },
+                options: {
+                    aspectRatio: 1,         // keep square for circles
+                    scales: {
+                        x: { title: { display: true, text: "X (mm)" } },
+                        y: { title: { display: true, text: "Y (mm)" } }
+                    }
+                }
+            });
+        }
+
+        function updateCharts() {
+            // X vs index
+            chartX.data.datasets[0].data = points.map((p, i) => ({ x: i, y: p.x }));
+            chartX.update();
+
+            // Y vs index
+            chartY.data.datasets[0].data = points.map((p, i) => ({ x: i, y: p.y }));
+            chartY.update();
+
+            // X vs Y
+            chartXY.data.datasets[0].data = points.map(p => ({ x: p.x, y: p.y }));
+            chartXY.update();
+        }
+        window.onload = initCharts;
+
+    </script>
+</body>
+</html>

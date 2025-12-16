@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Coordinate Canvas Drawer</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+  }
+  #coordBox {
+    width: 500px;
+    height: 200px;
+    margin-top: 20px;
+  }
+</style>
+</head>
+<body>
+<h2>Gridded 500×500 Coordinate Canvas</h2>
+<button id="clearBtn">Clear Canvas</button>
+<canvas id="canvas" width="500" height="500" style="border:1px solid black"></canvas>
+<textarea id="coordBox" placeholder="Recorded coordinates will appear here..."></textarea>
+
+<script>
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
+const W = canvas.width;
+const H = canvas.height;
+const grid = 50;
+let drawing = false;
+let rawPoints = [];
+let finalPoints = [];
+
+function drawGrid() {
+  ctx.clearRect(0, 0, W, H);
+  ctx.strokeStyle = "#ccc";
+  ctx.lineWidth = 1;
+
+  for (let x = 0; x <= W; x += grid) {
+    ctx.beginPath();
+    ctx.moveTo(x, 0);
+    ctx.lineTo(x, H);
+    ctx.stroke();
+  }
+  for (let y = 0; y <= H; y += grid) {
+    ctx.beginPath();
+    ctx.moveTo(0, y);
+    ctx.lineTo(W, y);
+    ctx.stroke();
+  }
+
+  ctx.strokeStyle = "black";
+  ctx.lineWidth = 3;
+
+  ctx.beginPath();
+  ctx.moveTo(W/2, 0);
+  ctx.lineTo(W/2, H);
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.moveTo(0, H/2);
+  ctx.lineTo(W, H/2);
+  ctx.stroke();
+}
+
+function drawLineSegment(x1, y1, x2, y2) {
+  ctx.strokeStyle = "red";
+  ctx.lineWidth = 2;
+  ctx.lineCap = "round";
+  ctx.beginPath();
+  ctx.moveTo(x1, y1);
+  ctx.lineTo(x2, y2);
+  ctx.stroke();
+}
+
+drawGrid();
+
+canvas.addEventListener("mousedown", e => {
+  drawing = true;
+  rawPoints = [];
+
+  const rect = canvas.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
+  rawPoints.push([x, y]);
+});
+
+canvas.addEventListener("mouseup", () => {
+  drawing = false;
+  if (rawPoints.length < 2) return;
+
+  finalPoints = resamplePath(rawPoints, 10);
+
+  const converted = finalPoints.map(([x, y]) => [
+    Math.round(x - W/2),
+    Math.round(H/2 - y)
+  ]);
+
+  document.getElementById("coordBox").value = JSON.stringify(converted, null, 2);
+});
+
+canvas.addEventListener("mousemove", e => {
+  if (!drawing) return;
+
+  const rect = canvas.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
+
+  const last = rawPoints[rawPoints.length - 1];
+  drawLineSegment(last[0], last[1], x, y);
+  rawPoints.push([x, y]);
+});
+
+function resamplePath(points, spacing) {
+  let result = [];
+  let distAccum = 0;
+
+  result.push(points[0]);
+
+  for (let i = 1; i < points.length; i++) {
+    const [x1, y1] = points[i - 1];
+    const [x2, y2] = points[i];
+    const dx = x2 - x1;
+    const dy = y2 - y1;
+    const segmentLength = Math.sqrt(dx*dx + dy*dy);
+
+    if (segmentLength + distAccum >= spacing) {
+      const ratio = (spacing - distAccum) / segmentLength;
+      const nx = x1 + ratio * dx;
+      const ny = y1 + ratio * dy;
+      result.push([nx, ny]);
+
+      points.splice(i, 0, [nx, ny]);
+      distAccum = 0;
+    } else {
+      distAccum += segmentLength;
+    }
+  }
+
+  return result;
+}
+
+document.getElementById("clearBtn").addEventListener("click", () => {
+  drawGrid();
+  rawPoints = [];
+  finalPoints = [];
+  document.getElementById("coordBox").value = "";
+});
+</script>
+</body>
+</html>
