@@ -1,0 +1,11 @@
+../Src/i2c_color_imu.c:94:6:i2c1_init	8	static
+../Src/i2c_color_imu.c:121:6:i2c1_write	24	static
+../Src/i2c_color_imu.c:132:6:i2c1_read_bytes	32	static
+../Src/i2c_color_imu.c:150:6:mpu6050_init	8	static
+../Src/i2c_color_imu.c:158:6:mpu6050_read_all	24	static
+../Src/i2c_color_imu.c:171:6:TCS34725_Init	16	static
+../Src/i2c_color_imu.c:184:6:TCS34725_ReadRGB	40	static
+../Src/i2c_color_imu.c:197:6:calibrate_init	24	static
+../Src/i2c_color_imu.c:224:6:compute_angles	56	static
+../Src/i2c_color_imu.c:287:6:imu_routine	8	static
+../Src/i2c_color_imu.c:294:6:color_detect_routine	8	static

@@ -1,0 +1,4 @@
+../Inc/core_cm0.h:623:22:__NVIC_EnableIRQ	2
+../Src/encoders.c:28:6:init_GPIO_EXTI_encoders	1
+../Src/encoders.c:66:6:update_encoder	5
+../Src/encoders.c:83:6:velocidad_encoder	1

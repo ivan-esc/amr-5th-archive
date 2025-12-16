@@ -1,0 +1,6 @@
+../Inc/core_cm0.h:623:22:__NVIC_EnableIRQ	16	static
+../Src/esp32_com.c:29:6:USART1_Init	8	static
+../Src/esp32_com.c:53:6:USART1_send	16	static
+../Src/esp32_com.c:61:6:USART1_IRQHandler	32	static
+../Src/esp32_com.c:119:6:processPoint	16	static
+../Src/esp32_com.c:133:6:resetPath	16	static

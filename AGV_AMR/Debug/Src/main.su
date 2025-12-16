@@ -1,0 +1,14 @@
+../Inc/core_cm0.h:623:22:__NVIC_EnableIRQ	16	static
+../Inc/core_cm0.h:730:22:__NVIC_SetPriority	24	static
+../Src/main.c:55:5:main	8	static,ignoring_inline_asm
+../Src/main.c:104:6:TIM14_Init	8	static
+../Src/main.c:113:6:TIM14_IRQHandler	16	static
+../Src/main.c:229:6:ManualDrive	8	static
+../Src/main.c:246:6:BT_process_data	8	static
+../Src/main.c:270:6:init_emergency_buttons	8	static
+../Src/main.c:280:6:check_emergency_buttons	8	static
+../Src/main.c:289:6:emergency_stop	8	static
+../Src/main.c:297:6:PC7_Button_Init	8	static
+../Src/main.c:309:6:PC7_Button_Check	8	static
+../Src/main.c:318:6:SelectManualLEDCommand	16	static
+../Src/main.c:343:6:reset_references	8	static

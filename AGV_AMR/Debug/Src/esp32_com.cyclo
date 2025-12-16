@@ -1,0 +1,6 @@
+../Inc/core_cm0.h:623:22:__NVIC_EnableIRQ	2
+../Src/esp32_com.c:29:6:USART1_Init	1
+../Src/esp32_com.c:53:6:USART1_send	2
+../Src/esp32_com.c:61:6:USART1_IRQHandler	10
+../Src/esp32_com.c:119:6:processPoint	2
+../Src/esp32_com.c:133:6:resetPath	2

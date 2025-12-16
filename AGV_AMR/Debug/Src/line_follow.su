@@ -1,0 +1,7 @@
+../Src/line_follow.c:33:6:seguir	16	static
+../Src/line_follow.c:89:6:Check_All_Sensors_Black	24	static
+../Src/line_follow.c:101:6:SmoothStop	24	static
+../Src/line_follow.c:113:6:Station_Color_Detect	8	static
+../Src/line_follow.c:149:6:station_wait_thing	8	static
+../Src/line_follow.c:171:6:IR_Sensors_Init	8	static
+../Src/line_follow.c:185:6:LineFollow	96	static

@@ -1,0 +1,14 @@
+../Src/amr_mode.c:43:14:mm_to_m	16	static
+../Src/amr_mode.c:44:14:point_x_m	16	static
+../Src/amr_mode.c:45:14:point_y_m	16	static
+../Src/amr_mode.c:48:14:norm_deg	16	static
+../Src/amr_mode.c:55:14:abs_f	16	static
+../Src/amr_mode.c:58:14:dist2d	40	static
+../Src/amr_mode.c:65:14:angle_to_point_deg	32	static
+../Src/amr_mode.c:75:14:angle_from_pose_to_point_deg	40	static
+../Src/amr_mode.c:83:13:apply_drive_refs	8	static
+../Src/amr_mode.c:90:6:resetAMR	8	static
+../Src/amr_mode.c:110:6:AMR_Stop	8	static
+../Src/amr_mode.c:115:6:AMR_Start	8	static
+../Src/amr_mode.c:131:6:AMR_Init	8	static
+../Src/amr_mode.c:141:6:AMR_Update	176	static
