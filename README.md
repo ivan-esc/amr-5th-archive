@@ -1,10 +1,10 @@
-AMR + AGV DIFFERENTIAL ROBOT - OMRON PROJECT (Mechatronics Eng. 5TH semester AD25)
+AMR + AGV DIFFERENTIAL ROBOT - OMRON PROJECT (Mechatronics Eng. 5th semester AD25)
 ===================================
 The objective of this project was to design a differential-wheeled robot capable of:
 - Being operated manually with a mobile app joystick
 - Operating under a configurable AGV mode with station color detection
 - AMR mode with complete custom route configuration.
-All while following safety protocols regarding velocity, energy consumption, emergency stops and awareness of nearby objects.
+Following safety protocols regarding velocity and acceleration curves, energy consumption, emergency stops and awareness of nearby objects.
 -----------------------------------
 The repository includes the following:
 - STM32f0Discovery project files (C)
@@ -16,10 +16,10 @@ Main aspects of the project include:
 - Key usage of registers, clock trees, and memory maps for STM32 pin configuration.
 - Timer preescaling for precise PWM outputs, ultrasonic sensors and interrupt-based non-blocking task control.
 - Implementation of UART serial communication with byte-syncing algorithms for byte transmission between **App Bluetooth Client <-> STM32 <-> ESP32**
-- I2C communication protocols for IMU and Color sensor communication with the STM32f0Discovery
+- I2C communication protocol for IMU and Color sensor communication with the STM32f0Discovery
 - Implementation of encoder based odometry with IMU correction, with digital low pass RC smoothing filters.
 - PWM control with PID motor output generation with acceleration curves on velocity references to reduce sudden current loads.
-- Precise AGV mode with precise line following algorithm and station-control
+- AGV mode with precise IR line following algorithms and station floor color detection logic control.
 - Robust AMR control that works for any route uploaded.
 - Intuitive visual cues configuration with ESP32 libraries
 - ADC readings and conversions from LM35 temperature sensors and battery-level voltage divider Vout.
