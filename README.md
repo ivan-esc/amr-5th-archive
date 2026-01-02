@@ -13,18 +13,18 @@ The repository includes the following:
 - MIT App Inventor project file for mobile app. (Block-based)
 -----------------------------------
 Main aspects of the project include:
-- Key usage of registers, clock trees, and memory maps for STM32 pin configuration.
-- Timer preescaling for precise PWM outputs, ultrasonic sensors and interrupt-based non-blocking task control.
-- Implementation of UART serial communication with byte-syncing algorithms for byte transmission between **App Bluetooth Client <-> STM32 <-> ESP32**
-- I2C communication protocol for IMU and Color sensor communication with the STM32f0Discovery.
-- Implementation of encoder based odometry with IMU correction, with digital low pass RC smoothing filters.
-- PWM control with PID motor output generation with acceleration curves on velocity references to reduce sudden current loads.
-- AGV mode with precise IR line following algorithms and station floor color detection logic control.
-- Robust AMR control that works for any route uploaded.
-- Intuitive visual cues configuration with LED strip ESP32 libraries.
-- ADC readings and conversions from LM35 temperature sensors and battery-level voltage divider measured voltage.
-- Extra buzzer christmas carols melodies and LED configurations.
-- Websockets communication between ESP32 and AMR Webpage.
-- Custom function computations for sinusoidal parametric equations for x and y coordinates based on period lengths.
-- Combined Chaikin-Gaussian smoothing for custom drawn route generation for AMR mode.
-- CSS formatting for aesthetic intuitive UI.
+- Direct register-level configuration of GPIOs using STM32 clock trees and peripheral memory maps.
+- Timer prescaling and compare/capture configuration for PWM generation, ultrasonic time-of-flight measurement, and interrupt-driven non-blocking task scheduling.
+- Implementation of UART communication with custom frame synchronization and desynchronization recovery between a Bluetooth client, STM32, and ESP32.
+- Integration of multiple peripheral sensors using the I²C communication protocol on an STM32F0-based platform.
+- Implementation of encoder-based odometry with inertial correction using first-order digital low-pass filtering.
+- Closed-loop PID motor control using PWM, with acceleration-limited velocity references to mitigate current spikes and mechanical stress.
+- AGV operation mode featuring robust line-following algorithms and floor-based station identification logic.
+- Autonomous mobile robot (AMR) control supporting dynamically uploaded navigation routes.
+- Implementation of visual feedback cues using addressable LED control libraries on the ESP32.
+- ADC acquisition and conversion for temperature monitoring and battery-level measurement using voltage dividers.
+- Additional audio and visual feedback features using buzzer-driven melodies and programmable LED patterns.
+- Real-time WebSocket communication between the ESP32 and a web-based AMR control interface.
+- Custom parametric trajectory generation using sinusoidal functions for x–y coordinate computation.
+- Route smoothing for user-drawn paths using combined Chaikin subdivision and Gaussian filtering techniques.
+- CSS-based layout and styling for an intuitive and user-friendly web interface.
